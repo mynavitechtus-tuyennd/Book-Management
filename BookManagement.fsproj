@@ -20,6 +20,7 @@
     <Compile Include="Infrastructure/Search/SearchService.fs" />
     <Compile Include="Infrastructure/CosmosDb/IBookRepository.fs" />
     <Compile Include="Infrastructure/CosmosDb/BookRepository.fs" />
+    <Compile Include="Helpers/CommonHelper.fs" />
     <Compile Include="Handlers/BookHttpHandler.fs" />
     <Compile Include="Handlers/SearchHttpHandler.fs" />
     <Compile Include="Handlers/AuthHttpHandler.fs" />
