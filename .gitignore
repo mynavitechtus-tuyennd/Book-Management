@@ -1,0 +1,53 @@
+# .NET (C#, F#, VB) build artifacts
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rchive/
+PublishOutput/
+publish/
+
+# NuGet packages & caching
+*.nupkg
+*.snupkg
+.nuget/
+# packages/
+
+# Sensitive configuration files (containing credentials)
+appsettings.json
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json.example
+
+# User secrets & user settings
+secrets.json
+*.user
+*.userosscache
+*.suo
+
+# Visual Studio / JetBrains Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.sln.docstates
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs & Test results
+*.log
+logs/
+TestResults/
+coverage/
+*.trx

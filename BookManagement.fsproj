@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>BookManagement</AssemblyName>
+    <EnableDefaultContentItems>false</EnableDefaultContentItems>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Giraffe" Version="6.4.0" />
+    <PackageReference Include="Giraffe.ViewEngine" Version="1.4.*" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.47.0" />
+    <PackageReference Include="Azure.Search.Documents" Version="11.6.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+  </ItemGroup>
+  <ItemGroup><Compile Include="UserDataLayer.fs" /><Compile Include="UserHttpHandler.fs" />
+    <Compile Include="Configuration/AppSettings.fs" />
+    <Compile Include="Models.fs" />
+    <Compile Include="Infrastructure/Search/ISearchService.fs" />
+    <Compile Include="Infrastructure/Search/SearchService.fs" />
+    <Compile Include="Infrastructure/CosmosDb/IBookRepository.fs" />
+    <Compile Include="Infrastructure/CosmosDb/BookRepository.fs" />
+    <Compile Include="Handlers/BookHttpHandler.fs" />
+    <Compile Include="Handlers/SearchHttpHandler.fs" />
+    <Compile Include="Handlers/AuthHttpHandler.fs" />
+    <Compile Include="HttpHandler.fs" />
+    <Compile Include="Startup.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="web.config" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="WebRoot\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

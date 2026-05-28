@@ -1,0 +1,25 @@
+{
+  "CosmosDb": {
+    "ConnectionString": "AccountEndpoint=https://YOUR_COSMOSDB_ENDPOINT.documents.azure.com:443/;AccountKey=YOUR_ACCOUNT_KEY;",
+    "DatabaseName": "BookManagement",
+    "ContainerName": "books",
+    "PartitionKey": "/genre"
+  },
+  "AzureSearch": {
+    "Endpoint": "https://YOUR_SEARCH_SERVICE_NAME.search.windows.net",
+    "ApiKey": "YOUR_AZURE_SEARCH_API_KEY",
+    "IndexName": "books-index"
+  },
+  "Jwt": {
+    "Issuer": "BookManagementApi",
+    "Audience": "BookManagementClient",
+    "SecretKey": "YOUR_SUPER_SECRET_JWT_KEY_MIN_256_BITS"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
