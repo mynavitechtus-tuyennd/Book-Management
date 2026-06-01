@@ -1,6 +1,5 @@
 namespace BookManagement.Infrastructure.CosmosDb
 
-open System
 open System.Net
 open System.Threading.Tasks
 open Microsoft.Azure.Cosmos
@@ -8,6 +7,7 @@ open Microsoft.Azure.Cosmos.Linq
 open Microsoft.Extensions.Logging
 open BookManagement.Domain
 open BookManagement.Infrastructure.Search
+open BookManagement.Helpers
 
 type BookRepository(cosmosClient: CosmosClient,
                     databaseName: string,
@@ -42,22 +42,13 @@ type BookRepository(cosmosClient: CosmosClient,
                         .WithParameter("@skip", skip)
                         .WithParameter("@take", size)
 
-                use feedIterator = container.GetItemQueryIterator<Book>(queryDef)
-                let mutable items : Book list = []
-
-                while feedIterator.HasMoreResults do
-                    let! response = feedIterator.ReadNextAsync()
-                    items <- items @ (response |> Seq.toList)
+                use feedIterator  = container.GetItemQueryIterator<Book>(queryDef)
+                let! items        = CommonHelper.collectPages feedIterator []
 
                 // Count total
                 let countDef = QueryDefinition("SELECT VALUE COUNT(1) FROM c")
-                use countIterator = container.GetItemQueryIterator<int>(countDef)
-                let mutable totalCount = 0L
-
-                while countIterator.HasMoreResults do
-                    let! countResponse = countIterator.ReadNextAsync()
-                    for c in countResponse do
-                        totalCount <- totalCount + int64 c
+                use countIterator  = container.GetItemQueryIterator<int>(countDef)
+                let! totalCount   = CommonHelper.sumPages countIterator 0L
 
                 return {
                     Items      = items

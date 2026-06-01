@@ -171,12 +171,10 @@ type SearchService(searchClient: SearchClient,
                 | _ -> ()
 
                 let! results = searchClient.SearchAsync<SearchDocument>(req.Query, options)
-                let mutable items = []
-
-                for result in results.Value.GetResults() do
-                    match Mapping.fromSearchDocument result.Document with
-                    | Some book -> items <- items @ [book]
-                    | None      -> ()
+                let items =
+                    results.Value.GetResults()
+                    |> Seq.choose (fun result -> Mapping.fromSearchDocument result.Document)
+                    |> Seq.toList
 
                 let total =
                     if results.Value.TotalCount.HasValue then results.Value.TotalCount.Value
