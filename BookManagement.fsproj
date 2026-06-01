@@ -13,14 +13,16 @@
     <PackageReference Include="Azure.Search.Documents" Version="11.6.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
   </ItemGroup>
-  <ItemGroup><Compile Include="UserDataLayer.fs" /><Compile Include="UserHttpHandler.fs" />
+  <ItemGroup>
+    <Compile Include="Helpers/CommonHelper.fs" />
+    <Compile Include="UserDataLayer.fs" />
+    <Compile Include="UserHttpHandler.fs" />
     <Compile Include="Configuration/AppSettings.fs" />
     <Compile Include="Models.fs" />
     <Compile Include="Infrastructure/Search/ISearchService.fs" />
     <Compile Include="Infrastructure/Search/SearchService.fs" />
     <Compile Include="Infrastructure/CosmosDb/IBookRepository.fs" />
     <Compile Include="Infrastructure/CosmosDb/BookRepository.fs" />
-    <Compile Include="Helpers/CommonHelper.fs" />
     <Compile Include="Handlers/BookHttpHandler.fs" />
     <Compile Include="Handlers/SearchHttpHandler.fs" />
     <Compile Include="Handlers/AuthHttpHandler.fs" />

@@ -3,6 +3,9 @@ namespace BookManagement.Helpers
 open System
 open Giraffe
 open System.Net
+open System.Threading.Tasks
+open Microsoft.Azure.Cosmos
+open  Microsoft.AspNetCore.Http
 
 module CommonHelper = 
 
@@ -23,3 +26,25 @@ module CommonHelper =
         match Int32.TryParse(s) with
         | true, v -> Some v
         | _       -> None
+
+    /// Drains all pages of a count FeedIterator, summing the values.
+    let rec sumPages (iterator: FeedIterator<int>) (acc: int64) : Task<int64> =
+        task {
+            if not iterator.HasMoreResults then
+                return acc
+            else
+                let! page  = iterator.ReadNextAsync()
+                let total  = page |> Seq.sumBy int64
+                return! sumPages iterator (acc + total)
+        }
+
+    /// Drains all pages of a FeedIterator into a single list using tail recursion.
+    let rec collectPages (iterator: FeedIterator<'T>) (acc: 'T list) : Task<'T list> =
+        task {
+            if not iterator.HasMoreResults then
+                return List.rev acc
+            else
+                let! page = iterator.ReadNextAsync()
+                let acc'  = page |> Seq.fold (fun a item -> item :: a) acc
+                return! collectPages iterator acc'
+        }
