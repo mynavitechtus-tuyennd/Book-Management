@@ -11,7 +11,7 @@ open Microsoft.Extensions.Logging
 open BookManagement.Domain
 
 /// Azure AI Search index field names
-module private IndexFields =
+module internal IndexFields =
     let [<Literal>] FieldId            = "id"
     let [<Literal>] FieldTitle         = "title"
     let [<Literal>] FieldAuthor        = "author"
@@ -26,7 +26,7 @@ module private IndexFields =
 open IndexFields
 
 /// Maps a Book to an Azure Search SearchDocument
-module private Mapping =
+module internal Mapping =
     let toSearchDocument (book: Book) : SearchDocument =
         let doc = SearchDocument()
         doc.[FieldId]            <- book.Id
