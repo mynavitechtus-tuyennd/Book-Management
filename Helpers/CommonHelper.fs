@@ -5,7 +5,7 @@ open Giraffe
 open System.Net
 open System.Threading.Tasks
 open Microsoft.Azure.Cosmos
-open  Microsoft.AspNetCore.Http
+open Microsoft.AspNetCore.Http
 
 module CommonHelper = 
 
@@ -47,4 +47,10 @@ module CommonHelper =
                 let! page = iterator.ReadNextAsync()
                 let acc'  = page |> Seq.fold (fun a item -> item :: a) acc
                 return! collectPages iterator acc'
+        }
+
+    let bindValue<'T> (ctx: HttpContext) : Task<'T option> =
+        task {
+            let! value = ctx.BindJsonAsync<'T>()
+            return if isNull (box value) then None else Some value
         }

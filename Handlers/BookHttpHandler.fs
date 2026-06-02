@@ -6,6 +6,7 @@ open Giraffe
 open BookManagement.Domain
 open BookManagement.Infrastructure.CosmosDb
 open BookManagement.Helpers
+open System.Net
 
 module BookHttpHandler =
 
@@ -34,17 +35,19 @@ module BookHttpHandler =
         fun next ctx ->
             task {
                 try
-                    let! req = ctx.BindJsonAsync<CreateBookRequest>()
-                    if isNull (box req) then
-                        return! CommonHelper.badRequest "Request body is required and must be valid JSON" next ctx
-                    elif String.IsNullOrWhiteSpace(req.Title) then
-                        return! CommonHelper.badRequest "Title is required" next ctx
-                    elif String.IsNullOrWhiteSpace(req.Genre) then
-                        return! CommonHelper.badRequest "Genre is required" next ctx
-                    else
-                        let! created = repo.Create req
-                        ctx.SetStatusCode 201
-                        return! json created next ctx
+                    let! req = CommonHelper.bindValue<CreateBookRequest> ctx
+
+                    match req with
+                    | None   -> return! CommonHelper.badRequest "Request body is required and must be valid JSON" next ctx
+                    | Some r ->
+                        if String.IsNullOrWhiteSpace(r.Title) then
+                            return! CommonHelper.badRequest "Title is required" next ctx
+                        elif String.IsNullOrWhiteSpace(r.Genre) then
+                            return! CommonHelper.badRequest "Genre is required" next ctx
+                        else
+                            let! created = repo.Create r
+                            ctx.SetStatusCode(int HttpStatusCode.Created)
+                            return! json created next ctx
                 with ex ->
                     return! CommonHelper.badRequest $"Invalid JSON body: {ex.Message}" next ctx
             }
@@ -54,16 +57,18 @@ module BookHttpHandler =
         fun next ctx ->
             task {
                 try
-                    let! req = ctx.BindJsonAsync<UpdateBookRequest>()
-                    if isNull (box req) then
-                        return! CommonHelper.badRequest "Request body is required and must be valid JSON" next ctx
-                    elif String.IsNullOrWhiteSpace(req.Title) then
-                        return! CommonHelper.badRequest "Title is required" next ctx
-                    else
-                        let! updated = repo.Update id genre req
-                        match updated with
-                        | Some b -> return! json b next ctx
-                        | None   -> return! CommonHelper.notFound $"Book '{id}' not found" next ctx
+                    let! req = CommonHelper.bindValue<UpdateBookRequest> ctx
+
+                    match req with
+                    | None   -> return! CommonHelper.badRequest "Request body is required and must be valid JSON" next ctx
+                    | Some r ->
+                        if String.IsNullOrWhiteSpace(r.Title) then
+                            return! CommonHelper.badRequest "Title is required" next ctx
+                        else
+                            let! updated = repo.Update id genre r
+                            match updated with
+                            | Some b -> return! json b next ctx
+                            | None   -> return! CommonHelper.notFound $"Book '{id}' not found" next ctx
                 with ex ->
                     return! CommonHelper.badRequest $"Invalid JSON body: {ex.Message}" next ctx
             }
@@ -74,7 +79,7 @@ module BookHttpHandler =
             task {
                 let! deleted = repo.Delete id genre
                 if deleted then
-                    ctx.SetStatusCode 204
+                    ctx.SetStatusCode(int HttpStatusCode.NoContent)
                     return! next ctx
                 else
                     return! CommonHelper.notFound $"Book '{id}' not found" next ctx

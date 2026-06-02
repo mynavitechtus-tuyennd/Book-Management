@@ -2,14 +2,15 @@ namespace BookManagement.Handlers
 
 open System
 open System.Text
+open System.Net
 open System.IdentityModel.Tokens.Jwt
 open System.Security.Claims
-open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.IdentityModel.Tokens
 open Giraffe
 open BookManagement.Domain
+open BookManagement.Helpers
 
 module AuthHttpHandler =
 
@@ -50,22 +51,25 @@ module AuthHttpHandler =
         fun next ctx ->
             task {
                 try
-                    let! req = ctx.BindJsonAsync<LoginRequest>()
+                    let! req = CommonHelper.bindValue<LoginRequest> ctx
 
-                    if isNull (box req) || String.IsNullOrWhiteSpace(req.Username) || String.IsNullOrWhiteSpace(req.Password) then
-                        return! (setStatusCode 400 >=> json {| message = "Username and Password are required" |}) next ctx
-                    else
+                    match req with
+                    | None ->
+                        return! CommonHelper.badRequest "Username and Password are required" next ctx
+                    | Some r when String.IsNullOrWhiteSpace(r.Username) || String.IsNullOrWhiteSpace(r.Password) ->
+                        return! CommonHelper.badRequest "Username and Password are required" next ctx
+                    | Some r ->
                         let config    = ctx.RequestServices.GetRequiredService<IConfiguration>()
                         let issuer    = config.["Jwt:Issuer"]
                         let audience  = config.["Jwt:Audience"]
                         let secretKey = config.["Jwt:SecretKey"]
 
-                        let mutable storedPassword = ""
-                        if validCredentials.TryGetValue(req.Username, &storedPassword) && storedPassword = req.Password then
-                            let result = generateToken issuer audience secretKey req.Username
+                        match validCredentials.TryGetValue(r.Username) with
+                        | true, storedPassword when storedPassword = r.Password ->
+                            let result = generateToken issuer audience secretKey r.Username
                             return! json result next ctx
-                        else
-                            return! (setStatusCode 401 >=> json {| message = "Invalid username or password" |}) next ctx
+                        | _ ->
+                            return! (setStatusCode (int HttpStatusCode.Unauthorized) >=> json {| message = "Invalid username or password" |}) next ctx
                 with ex ->
-                    return! (setStatusCode 400 >=> json {| message = $"Invalid request: {ex.Message}" |}) next ctx
+                    return! CommonHelper.badRequest $"Invalid request: {ex.Message}" next ctx
             }
