@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"         Version="17.14.0" />
+    <PackageReference Include="xunit"                          Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio"      Version="2.8.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="FsUnit.xUnit"                   Version="6.0.1" />
+    <PackageReference Include="NSubstitute"                    Version="5.3.0" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost"  Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"     Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection"      Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration"            Version="10.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../BookManagement.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Helpers/TestHelpers.fs" />
+    <Compile Include="Helpers/CommonHelperTests.fs" />
+    <Compile Include="Domain/BookModelsTests.fs" />
+    <Compile Include="Infrastructure/MappingTests.fs" />
+    <Compile Include="Handlers/BookHandlerUnitTests.fs" />
+    <Compile Include="Handlers/AuthHandlerUnitTests.fs" />
+    <Compile Include="Handlers/SearchHandlerUnitTests.fs" />
+    <Compile Include="BookRepositoryTests.fs" />
+    <Compile Include="BookHandlerTests.fs" />
+    <Compile Include="SearchHandlerTests.fs" />
+  </ItemGroup>
+</Project>

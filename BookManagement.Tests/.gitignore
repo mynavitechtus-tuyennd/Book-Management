@@ -1,0 +1,34 @@
+## Build outputs
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+
+## User-specific files
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+## IDEs and editors
+.vs/
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln.docstates
+
+## OS files
+.DS_Store
+Thumbs.db
+
+## Test results
+[Tt]est[Rr]esult*/
+
+## NuGet Packages
+*.nupkg
+# The packages folder can be ignored as of NuGet 3.0+
+/packages/
+
+## Crash dumps
+*.dmp
