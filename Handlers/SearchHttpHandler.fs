@@ -16,7 +16,6 @@ module SearchHttpHandler =
                 let searchService = ctx.RequestServices.GetRequiredService<ISearchQueryService>()
                 // Apply defaults for page/size if missing
                 let req = { req with
-                                Query = if String.IsNullOrWhiteSpace(req.Query) then "*" else req.Query
                                 Page = if req.Page <= 0 then 1 else req.Page
                                 Size = if req.Size <= 0 then 10 else min 100 req.Size }
 

@@ -32,24 +32,23 @@ let ``search with no query params uses defaults and returns 200`` () =
     status |> should equal (int HttpStatusCode.OK)
     
     let lastReq = stub.LastSearchRequest.Value
-    lastReq.Query |> should equal "*"
     lastReq.Genre |> should equal None
     lastReq.Page |> should equal 1
     lastReq.Size |> should equal 10
 
 [<Fact>]
-let ``search with explicit valid query params constructs correct request`` () =
+let ``search with genre and author params constructs correct request`` () =
     let stub = StubSearchService()
     let repo = StubBookRepository()
-    let ctx = getSearchCtx stub repo [("query", "clean code"); ("genre", "Technology"); ("page", "2"); ("size", "25")]
+    let ctx = getSearchCtx stub repo [("genre", "Technology"); ("author", "Martin"); ("page", "2"); ("size", "25")]
 
     let status = runHandler (bindModel<SearchRequest> None search) ctx
 
     status |> should equal (int HttpStatusCode.OK)
     
     let lastReq = stub.LastSearchRequest.Value
-    lastReq.Query |> should equal "clean code"
     lastReq.Genre |> should equal (Some "Technology")
+    lastReq.Author |> should equal (Some "Martin")
     lastReq.Page |> should equal 2
     lastReq.Size |> should equal 25
 

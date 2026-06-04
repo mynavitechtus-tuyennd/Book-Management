@@ -37,23 +37,24 @@ type SearchService(searchClient: SearchClient, logger: ILogger<SearchService>) =
                 options.Size <- Nullable(req.Size)
                 options.IncludeTotalCount <- true
 
-                // Build OData filter expression
+                // Build OData filter expression using search.ismatch for partial/like matching
                 let filters = System.Collections.Generic.List<string>()
 
                 match req.Genre with
-                | Some genre when not (String.IsNullOrWhiteSpace(genre)) -> filters.Add(sprintf "genre eq '%s'" genre)
+                | Some genre when not (String.IsNullOrWhiteSpace(genre)) ->
+                    filters.Add(sprintf "search.ismatch('%s', 'genre')" genre)
                 | _ -> ()
 
-                // Authors is a Collection(Edm.String) — use OData 'any' lambda syntax
+                // Authors is a Collection(Edm.String) — search.ismatch searches across all values
                 match req.Author with
                 | Some author when not (String.IsNullOrWhiteSpace(author)) ->
-                    filters.Add(sprintf "authors/any(a: a eq '%s')" author)
+                    filters.Add(sprintf "search.ismatch('%s', 'authors')" author)
                 | _ -> ()
 
                 if filters.Count > 0 then
                     options.Filter <- String.Join(" and ", filters)
 
-                let! results = searchClient.SearchAsync<BookSearchDocument>(req.Query, options)
+                let! results = searchClient.SearchAsync<BookSearchDocument>("*", options)
                 let items =
                     results.Value.GetResults()
                     |> Seq.map (fun result -> BookSearchIndexConversion.toBook result.Document)

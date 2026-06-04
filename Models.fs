@@ -211,7 +211,6 @@ type GetAllRequest =
 [<CLIMutable>]
 type SearchRequest =
     {
-        Query  : string
         Genre  : string option
         Author : string option    // filter by author name (matches within Authors array)
         Page   : int
