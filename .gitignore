@@ -54,3 +54,4 @@ coverage/
 
 # Local development config helper
 scripts/EnvHelper.fsx
+scripts/.env
