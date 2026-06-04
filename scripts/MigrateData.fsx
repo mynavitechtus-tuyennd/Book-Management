@@ -23,6 +23,7 @@
 #r "nuget: Microsoft.Azure.Cosmos, 3.47.0"
 #r "nuget: Azure.Search.Documents, 11.6.0"
 #r "nuget: Newtonsoft.Json, 13.0.3"
+#load "EnvHelper.fsx"
 #load "../Models.fs"
 
 open System
@@ -31,21 +32,16 @@ open Azure.Search.Documents.Indexes
 open Azure.Search.Documents.Indexes.Models
 open Microsoft.Azure.Cosmos
 open BookManagement.Domain
+open EnvHelper
 
-// ── Config từ environment variables ──────────────────────────────────────────
+// ── Config ───────────────────────────────────────────────────────────────────
 
-let getEnv key =
-    let v = Environment.GetEnvironmentVariable(key)
-    if String.IsNullOrWhiteSpace(v) then
-        failwithf "Environment variable '%s' is required but not set." key
-    v
-
-let cosmosConnStr   = getEnv "COSMOS_CONNECTION_STRING"
-let cosmoDbName     = getEnv "COSMOS_DATABASE"
-let cosmosContainer = getEnv "COSMOS_CONTAINER"
-let searchEndpoint  = getEnv "AZURE_SEARCH_ENDPOINT"
-let searchApiKey    = getEnv "AZURE_SEARCH_KEY"
-let searchIndexName = getEnv "AZURE_SEARCH_INDEX"
+let cosmosConnStr   = EnvHelper.cosmosConnStr
+let cosmoDbName     = EnvHelper.cosmoDbName
+let cosmosContainer = EnvHelper.cosmosContainer
+let searchEndpoint  = EnvHelper.searchEndpoint
+let searchApiKey    = EnvHelper.searchApiKey
+let searchIndexName = EnvHelper.searchIndexName
 
 // ── Confirm trước khi xóa ─────────────────────────────────────────────────────
 
@@ -106,7 +102,7 @@ printfn "[3/3] Creating new Search index with updated schema (authors as Collect
 
 let fields = 
     let builder = FieldBuilder()
-    builder.Build(typeof<Book>)
+    builder.Build(typeof<BookSearchDocument>)
 
 let index  = SearchIndex(searchIndexName, fields)
 let result = indexClient.CreateOrUpdateIndex(index)

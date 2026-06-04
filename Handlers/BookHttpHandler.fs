@@ -43,7 +43,7 @@ module BookHttpHandler =
                     return! CommonHelper.badRequest "Title is required" next ctx
                 elif String.IsNullOrWhiteSpace(req.Genre) then
                     return! CommonHelper.badRequest "Genre is required" next ctx
-                elif req.Authors |> List.isEmpty then
+                elif isNull (box req.Authors) || req.Authors |> List.isEmpty then
                     return! CommonHelper.badRequest "At least one author is required" next ctx
                 else
                     let! created = (getService ctx).Create req
@@ -57,7 +57,7 @@ module BookHttpHandler =
             task {
                 if String.IsNullOrWhiteSpace(req.Title) then
                     return! CommonHelper.badRequest "Title is required" next ctx
-                elif req.Authors |> List.isEmpty then
+                elif isNull (box req.Authors) || req.Authors |> List.isEmpty then
                     return! CommonHelper.badRequest "At least one author is required" next ctx
                 else
                     let! updated = (getService ctx).Update id genre req

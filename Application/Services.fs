@@ -12,6 +12,7 @@ type BookService(repo: IBookRepository) =
         member _.Update id genre req = repo.Update id genre req
         member _.Delete id genre = repo.Delete id genre
 
-type SearchQueryService(search: ISearchService) =
+type SearchQueryService(search: ISearchService, repo: IBookRepository) =
     interface ISearchQueryService with
         member _.Search req = search.Search req
+        member _.SearchDb req = repo.SearchDb req

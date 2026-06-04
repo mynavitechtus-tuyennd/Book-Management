@@ -5,3 +5,4 @@ open BookManagement.Domain
 
 type ISearchQueryService =
     abstract member Search : req:SearchRequest -> Task<PagedResult<BookResponse>>
+    abstract member SearchDb : req:SearchDbRequest -> Task<PagedResult<BookResponse>>

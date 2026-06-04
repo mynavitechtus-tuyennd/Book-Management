@@ -11,6 +11,7 @@
 
 #r "nuget: Azure.Search.Documents, 11.6.0"
 #r "nuget: Newtonsoft.Json, 13.0.3"
+#load "EnvHelper.fsx"
 #load "../Models.fs"
 
 open System
@@ -18,22 +19,17 @@ open Azure
 open Azure.Search.Documents.Indexes
 open Azure.Search.Documents.Indexes.Models
 open BookManagement.Domain
+open EnvHelper
 
-// ── Config từ environment variables ──────────────────────────────────────────
+// ── Config ───────────────────────────────────────────────────────────────────
 
-let getEnv key =
-    let v = Environment.GetEnvironmentVariable(key)
-    if String.IsNullOrWhiteSpace(v) then
-        failwithf "Environment variable '%s' is required but not set." key
-    v
-
-let endpoint  = getEnv "AZURE_SEARCH_ENDPOINT"
-let apiKey    = getEnv "AZURE_SEARCH_KEY"
-let indexName = getEnv "AZURE_SEARCH_INDEX"
+let endpoint  = EnvHelper.searchEndpoint
+let apiKey    = EnvHelper.searchApiKey
+let indexName = EnvHelper.searchIndexName
 
 let buildIndexFields () =
     let builder = FieldBuilder()
-    builder.Build(typeof<Book>)
+    builder.Build(typeof<BookSearchDocument>)
 
 // ── Create or update index ────────────────────────────────────────────────────
 

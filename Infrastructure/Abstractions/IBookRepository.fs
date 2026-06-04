@@ -11,6 +11,9 @@ type IBookRepository =
     /// Get a book by id and genre (partition key)
     abstract member GetById  : id:string -> genre:string -> Task<BookResponse option>
 
+    /// Search books in the database
+    abstract member SearchDb : req:SearchDbRequest -> Task<PagedResult<BookResponse>>
+
     /// Create a new book — also pushes to Azure Search index
     abstract member Create   : req:CreateBookRequest -> Task<BookResponse>
 

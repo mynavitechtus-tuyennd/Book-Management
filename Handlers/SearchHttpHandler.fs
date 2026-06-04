@@ -10,25 +10,31 @@ open BookManagement.Infrastructure.Abstractions
 module SearchHttpHandler =
 
     // GET /api/books/search?q=clean+code&genre=Technology&author=Martin&page=1&size=10
-    let search : HttpHandler =
+    let search (req: SearchRequest) : HttpHandler =
+        fun (next: HttpFunc) (ctx: HttpContext) ->
+            task {
+                let searchService = ctx.RequestServices.GetRequiredService<ISearchQueryService>()
+                // Apply defaults for page/size if missing
+                let req = { req with
+                                Page = if req.Page <= 0 then 1 else req.Page
+                                Size = if req.Size <= 0 then 10 else min 100 req.Size }
+
+                let! result = searchService.Search req
+                return! json result next ctx
+            }
+
+    // GET /api/books/search-db?title=clean+code&genre=Technology&page=1&size=10
+    // Request model is bound by Giraffe's bindModel at the route level (HttpHandler.fs)
+    let searchDb (req: SearchDbRequest) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
                 let searchService = ctx.RequestServices.GetRequiredService<ISearchQueryService>()
 
-                let q      = ctx.TryGetQueryStringValue "q"      |> Option.defaultValue "*"
-                let genre  = ctx.TryGetQueryStringValue "genre"
-                let author = ctx.TryGetQueryStringValue "author"
-                let page   = ctx.TryGetQueryStringValue "page"   |> Option.bind (fun s -> match Int32.TryParse(s) with true, v -> Some v | _ -> None) |> Option.defaultValue 1
-                let size   = ctx.TryGetQueryStringValue "size"   |> Option.bind (fun s -> match Int32.TryParse(s) with true, v -> Some v | _ -> None) |> Option.defaultValue 10
+                // Apply defaults for page/size since bindModel won't set them if missing
+                let req = { req with
+                                Page = if req.Page <= 0 then 1 else req.Page
+                                Size = if req.Size <= 0 then 10 else min 100 req.Size }
 
-                let req = {
-                    Query  = q
-                    Genre  = genre
-                    Author = author
-                    Page   = max 1 page
-                    Size   = min 100 (max 1 size)
-                }
-
-                let! result = searchService.Search req
+                let! result = searchService.SearchDb req
                 return! json result next ctx
             }
