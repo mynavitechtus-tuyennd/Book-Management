@@ -5,6 +5,7 @@ open System.Collections.Generic
 open Newtonsoft.Json
 open Azure.Search.Documents.Indexes
 open Azure.Search.Documents.Models
+open System.Text.Json.Serialization
 
 /// JWT
 [<CLIMutable>]
@@ -21,64 +22,106 @@ type TokenResult =
         ExpiresAt : DateTime
     }
 
-/// Core domain model — maps to both Cosmos DB document and Azure AI Search index.
+/// Core domain model — maps to both Cosmos DB document.
 /// Azure Search field schema is driven by [SimpleField] / [SearchableField] attributes.
 /// FieldBuilder.Build<Book>() reads these attributes to auto-generate the index schema.
 [<CLIMutable>]
 type Book =
     {
-        /// Cosmos DB + Search key field
+        /// Cosmos DB key field
         [<JsonProperty("id")>]
-        [<SimpleField(IsKey = true)>]
         Id            : string
 
         [<JsonProperty("title")>]
-        [<SearchableField>]
         Title         : string
 
         /// List of authors — supports multi-author books.
         /// Stored as Collection(Edm.String) in Azure Search.
         [<JsonProperty("authors")>]
-        [<SearchableField>]
         Authors       : string list
 
         [<JsonProperty("isbn")>]
-        [<SearchableField>]
         Isbn          : string
 
         [<JsonProperty("publisher")>]
-        [<SearchableField>]
         Publisher     : string
 
         [<JsonProperty("publishedYear")>]
-        [<SimpleField(IsFilterable = true, IsSortable = true)>]
         PublishedYear : int
 
         [<JsonProperty("genre")>]
-        [<SimpleField(IsFilterable = true, IsFacetable = true)>]
         Genre         : string
 
         [<JsonProperty("description")>]
-        [<SearchableField>]
         Description   : string
 
         [<JsonProperty("price")>]
-        [<SimpleField(IsFilterable = true, IsSortable = true)>]
-        Price         : decimal
+        Price         : double
 
         [<JsonProperty("stock")>]
-        [<SimpleField(IsFilterable = true)>]
         Stock         : int
 
-        /// Not indexed in Azure Search (internal timestamps)
         [<JsonProperty("createdAt")>]
-        [<FieldBuilderIgnore>]
         CreatedAt     : DateTime
 
         [<JsonProperty("updatedAt")>]
-        [<FieldBuilderIgnore>]
         UpdatedAt     : DateTime
     }
+
+[<CLIMutable>]
+type BookSearchDocument =
+    {
+        [<JsonPropertyName("id")>]
+        [<SimpleField(IsKey = true)>]
+        Id            : string
+
+        [<JsonPropertyName("title")>]
+        [<SearchableField>]
+        Title         : string
+
+        /// List of authors — supports multi-author books.
+        /// Stored as Collection(Edm.String) in Azure Search.
+        [<JsonPropertyName("authors")>]
+        [<SearchableField>]
+        Authors       : string list
+
+        [<JsonPropertyName("isbn")>]
+        [<SearchableField>]
+        Isbn          : string
+
+        [<JsonPropertyName("publisher")>]
+        [<SearchableField>]
+        Publisher     : string
+
+        [<JsonPropertyName("publishedYear")>]
+        [<SimpleField(IsFilterable = true, IsSortable = true)>]
+        PublishedYear : int
+
+        [<JsonPropertyName("genre")>]
+        [<SimpleField(IsFilterable = true, IsFacetable = true)>]
+        Genre         : string
+
+        [<JsonPropertyName("description")>]
+        [<SearchableField>]
+        Description   : string
+
+        [<JsonPropertyName("price")>]
+        [<SimpleField(IsFilterable = true, IsSortable = true)>]
+        Price         : double
+
+        [<JsonPropertyName("stock")>]
+        [<SimpleField(IsFilterable = true)>]
+        Stock         : int
+
+        [<JsonPropertyName("createdAt")>]
+        [<SimpleField(IsFilterable = true)>]
+        CreatedAt     : DateTime
+
+        [<JsonPropertyName("updatedAt")>]
+        [<SimpleField(IsFilterable = true)>]
+        UpdatedAt     : DateTime
+    }
+
 
 /// DTO for POST /api/books
 [<CLIMutable>]
@@ -91,7 +134,7 @@ type CreateBookRequest =
         PublishedYear : int
         Genre         : string
         Description   : string
-        Price         : decimal
+        Price         : double
         Stock         : int
     }
 
@@ -105,7 +148,7 @@ type UpdateBookRequest =
         Publisher     : string
         PublishedYear : int
         Description   : string
-        Price         : decimal
+        Price         : double
         Stock         : int
     }
 
@@ -113,6 +156,7 @@ type UpdateBookRequest =
 type BookResponse = Book
 
 /// Query parameters for Azure AI Search
+[<CLIMutable>]
 type SearchRequest =
     {
         Query  : string
@@ -120,6 +164,16 @@ type SearchRequest =
         Author : string option    // filter by author name (matches within Authors array)
         Page   : int
         Size   : int
+    }
+
+/// Query parameters for Cosmos DB Search
+[<CLIMutable>]
+type SearchDbRequest =
+    {
+        Title : string option
+        Genre : string option
+        Page  : int
+        Size  : int
     }
 
 /// Generic paged response
@@ -208,7 +262,7 @@ module Book =
 
 module BookSearchIndexConversion = 
     /// Build a SearchDocument dictionary from a Book (for indexing)
-    let toSearchModel (book: Book) =
+    let toSearchDoc (book: Book) : BookSearchDocument =
         {
             Id            = book.Id
             Title         = book.Title
@@ -222,4 +276,21 @@ module BookSearchIndexConversion =
             Stock         = book.Stock
             CreatedAt     = book.CreatedAt
             UpdatedAt     = book.UpdatedAt
+        }
+
+    /// Convert BookSearchDocument to Book (for search result representation)
+    let toBook (doc: BookSearchDocument) : Book =
+        {
+            Id            = doc.Id
+            Title         = doc.Title
+            Authors       = doc.Authors
+            Isbn          = doc.Isbn
+            Publisher     = doc.Publisher
+            PublishedYear = doc.PublishedYear
+            Genre         = doc.Genre
+            Description   = doc.Description
+            Price         = doc.Price
+            Stock         = doc.Stock
+            CreatedAt     = doc.CreatedAt
+            UpdatedAt     = doc.UpdatedAt
         }

@@ -2,6 +2,7 @@ namespace BookManagement.Infrastructure.CosmosDb
 
 open System.Net
 open System.Threading.Tasks
+open System.Collections.Generic
 open Microsoft.Azure.Cosmos
 open Microsoft.Azure.Cosmos.Linq
 open Microsoft.Extensions.Logging
@@ -58,6 +59,48 @@ type BookRepository(cosmosClient: CosmosClient,
 
         member _.GetById (id: string) (genre: string) : Task<BookResponse option> =
             getById' id genre
+
+        member _.SearchDb (req: SearchDbRequest) : Task<PagedResult<BookResponse>> =
+            task {
+                let skip = (req.Page - 1) * req.Size
+
+                // Each condition carries its own SQL snippet + parameter binding
+                let conditions =
+                    [
+                        req.Title |> Option.filter (not << System.String.IsNullOrWhiteSpace)
+                                  |> Option.map (fun v -> "CONTAINS(LOWER(c.title), LOWER(@title))", "@title", v)
+
+                        req.Genre |> Option.filter (not << System.String.IsNullOrWhiteSpace)
+                                  |> Option.map (fun v -> "LOWER(c.genre) = LOWER(@genre)", "@genre", v)
+                    ]
+                    |> List.choose id
+
+                let whereClause =
+                    match conditions with
+                    | [] -> ""
+                    | _  -> "WHERE " + String.concat " AND " (conditions |> List.map (fun (sql, _, _) -> sql))
+
+                let queryText = sprintf "SELECT * FROM c %s OFFSET @skip LIMIT @take" whereClause
+
+                // Fold over conditions to bind parameters without repeating checks
+                let queryDef =
+                    conditions
+                    |> List.fold
+                        (fun (def: QueryDefinition) (_, paramName, value) -> def.WithParameter(paramName, value))
+                        (QueryDefinition(queryText)
+                            .WithParameter("@skip", skip)
+                            .WithParameter("@take", req.Size))
+
+                use feedIterator = container.GetItemQueryIterator<Book>(queryDef)
+                let! items = CommonHelper.collectPages feedIterator []
+
+                return {
+                    Items      = items
+                    TotalCount = 0L // Skipped for performance
+                    Page       = req.Page
+                    Size       = req.Size
+                }
+            }
 
         member _.Create (req: CreateBookRequest) : Task<BookResponse> =
             task {

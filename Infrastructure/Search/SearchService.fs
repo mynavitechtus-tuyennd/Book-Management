@@ -18,7 +18,7 @@ type SearchService(searchClient: SearchClient,
 
         member _.IndexDocument(book: Book) : Task<unit> =
             task {
-                let doc   = book
+                let doc   = BookSearchIndexConversion.toSearchDoc book
                 let batch = IndexDocumentsBatch.MergeOrUpload([| doc |])
                 let! _    = searchClient.IndexDocumentsAsync(batch)
                 logger.LogDebug("Indexed book {Id} in Azure Search", book.Id)
@@ -55,10 +55,10 @@ type SearchService(searchClient: SearchClient,
                 if filters.Count > 0 then
                     options.Filter <- String.Join(" and ", filters)
 
-                let! results = searchClient.SearchAsync<Book>(req.Query, options)
+                let! results = searchClient.SearchAsync<BookSearchDocument>(req.Query, options)
                 let items =
                     results.Value.GetResults()
-                    |> Seq.map (fun result -> result.Document)
+                    |> Seq.map (fun result -> BookSearchIndexConversion.toBook result.Document)
                     |> Seq.toList
 
                 let total =

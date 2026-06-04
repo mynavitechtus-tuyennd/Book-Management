@@ -66,9 +66,11 @@ type Startup(configuration: IConfiguration) =
 
         // Azure AI Search — SearchClient only (SearchIndexClient not needed at runtime;
         // index schema is managed via scripts/CreateSearchIndex.fsx)
+        // Configured with camelCase naming to match field names in the index
+        // (FieldBuilder reads [JsonProperty] attrs → creates lowercase fields like 'genre', 'authors')
         let searchCredential  = AzureKeyCredential(searchApiKey)
         let searchEndpointUri = Uri(searchEndpoint)
-        let searchClient      = new SearchClient(searchEndpointUri, searchIndexName, searchCredential)
+        let searchClient = new SearchClient(searchEndpointUri, searchIndexName, searchCredential)
         services.AddSingleton<SearchClient>(searchClient) |> ignore
 
         // Scoped services
@@ -89,7 +91,8 @@ type Startup(configuration: IConfiguration) =
 
         services.AddScoped<ISearchQueryService>(fun sp ->
             let search = sp.GetRequiredService<ISearchService>()
-            SearchQueryService(search) :> ISearchQueryService) |> ignore
+            let repo = sp.GetRequiredService<IBookRepository>()
+            SearchQueryService(search, repo) :> ISearchQueryService) |> ignore
 
         // JWT Authentication
         services

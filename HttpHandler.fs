@@ -25,7 +25,8 @@ module HttpHandler =
                   (choose
                       [
                         // Public read-only routes
-                        GET >=> route "/search" >=> SearchHttpHandler.search
+                        GET >=> route "/search" >=> bindModel<SearchRequest> None SearchHttpHandler.search
+                        GET >=> route "/search-db" >=> bindModel<SearchDbRequest> None SearchHttpHandler.searchDb
                         GET >=> BookHttpHandler.getAll
 
                         GET >=> routef "/%s/%s" (fun (id, genre) -> BookHttpHandler.getById id genre)

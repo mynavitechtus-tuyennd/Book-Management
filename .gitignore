@@ -51,3 +51,6 @@ logs/
 TestResults/
 coverage/
 *.trx
+
+# Local development config helper
+scripts/EnvHelper.fsx
