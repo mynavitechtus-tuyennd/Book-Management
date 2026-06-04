@@ -15,12 +15,12 @@ module BookHttpHandler =
         ctx.RequestServices.GetRequiredService<IBookService>()
 
     // GET /api/books?page=1&size=20
-    let getAll : HttpHandler =
+    let getAll (req: GetAllRequest) : HttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
                 let svc = getService ctx
-                let page = ctx.TryGetQueryStringValue "page" |> Option.bind CommonHelper.tryParseInt |> Option.defaultValue 1
-                let size = ctx.TryGetQueryStringValue "size" |> Option.bind CommonHelper.tryParseInt |> Option.defaultValue 20
+                let page = if req.Page.IsSome then req.Page.Value else 1
+                let size = if req.Size.IsSome then req.Size.Value else 20
                 let! result = svc.GetAll page size
                 return! json result next ctx
             }
@@ -39,13 +39,9 @@ module BookHttpHandler =
     let create (req: CreateBookRequest) : HttpHandler =
         fun next ctx ->
             task {
-                if String.IsNullOrWhiteSpace(req.Title) then
-                    return! CommonHelper.badRequest "Title is required" next ctx
-                elif String.IsNullOrWhiteSpace(req.Genre) then
-                    return! CommonHelper.badRequest "Genre is required" next ctx
-                elif isNull (box req.Authors) || req.Authors |> List.isEmpty then
-                    return! CommonHelper.badRequest "At least one author is required" next ctx
-                else
+                match CommonHelper.validate req with
+                | Error err -> return! CommonHelper.badRequest err next ctx
+                | Ok () ->
                     let! created = (getService ctx).Create req
                     ctx.SetStatusCode(int HttpStatusCode.Created)
                     return! json created next ctx
@@ -55,11 +51,9 @@ module BookHttpHandler =
     let update (id: string) (genre: string) (req: UpdateBookRequest) : HttpHandler =
         fun next ctx ->
             task {
-                if String.IsNullOrWhiteSpace(req.Title) then
-                    return! CommonHelper.badRequest "Title is required" next ctx
-                elif isNull (box req.Authors) || req.Authors |> List.isEmpty then
-                    return! CommonHelper.badRequest "At least one author is required" next ctx
-                else
+                match CommonHelper.validate req with
+                | Error err -> return! CommonHelper.badRequest err next ctx
+                | Ok () ->
                     let! updated = (getService ctx).Update id genre req
                     match updated with
                     | Some b -> return! json b next ctx

@@ -9,6 +9,8 @@ open Microsoft.AspNetCore.Http
 open FSharp.Control
 open Serilog
 
+open System.ComponentModel.DataAnnotations
+
 module CommonHelper = 
 
     // Handle bad request error and return 400 status code
@@ -28,6 +30,21 @@ module CommonHelper =
         match Int32.TryParse(s) with
         | true, v -> Some v
         | _       -> None
+
+    /// Validates an object using System.ComponentModel.DataAnnotations.
+    /// Returns Ok if valid, or Error with concatenated error messages if invalid.
+    let validate (model: obj) =
+        if isNull model then
+            Error "Model is null"
+        else
+            let context = ValidationContext(model)
+            let results = System.Collections.Generic.List<ValidationResult>()
+            let isValid = Validator.TryValidateObject(model, context, results, true)
+            if isValid then
+                Ok ()
+            else
+                let errors = results |> Seq.map (fun r -> r.ErrorMessage) |> String.concat "; "
+                Error errors
 
     /// Drains all pages of a count FeedIterator, summing the values.
     let rec sumPages (iterator: FeedIterator<int>) (acc: int64) : Task<int64> =
