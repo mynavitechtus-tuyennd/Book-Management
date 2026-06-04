@@ -1,11 +1,13 @@
 namespace BookManagement.Domain
 
 open System
+open System.Collections
 open System.Collections.Generic
 open Newtonsoft.Json
 open Azure.Search.Documents.Indexes
 open Azure.Search.Documents.Models
 open System.Text.Json.Serialization
+open System.ComponentModel.DataAnnotations
 
 /// JWT
 [<CLIMutable>]
@@ -82,7 +84,7 @@ type BookSearchDocument =
         /// List of authors — supports multi-author books.
         /// Stored as Collection(Edm.String) in Azure Search.
         [<JsonPropertyName("authors")>]
-        [<SearchableField>]
+        [<SearchableField(IsFilterable = true)>]
         Authors       : string list
 
         [<JsonPropertyName("isbn")>]
@@ -123,18 +125,46 @@ type BookSearchDocument =
     }
 
 
+/// Custom validation attribute to ensure a list or collection is not empty
+type RequireNonEmptyListAttribute() =
+    inherit ValidationAttribute("At least one item is required.")
+    override _.IsValid(value: obj) =
+        match value with
+        | null -> false
+        | :? IEnumerable as col ->
+            let enumerator = col.GetEnumerator()
+            enumerator.MoveNext()
+        | _ -> false
+
 /// DTO for POST /api/books
 [<CLIMutable>]
 type CreateBookRequest =
     {
+        [<Required(ErrorMessage = "Title is required")>]
         Title         : string
+
+        [<RequireNonEmptyList(ErrorMessage = "At least one author is required")>]
         Authors       : string list
+
+        [<Required(ErrorMessage = "Isbn is required")>]
         Isbn          : string
+
+        [<Required(ErrorMessage = "Publisher is required")>]
         Publisher     : string
+
+        [<Range(1800, 2100, ErrorMessage = "Published year must be between 1800 and 2100")>]
         PublishedYear : int
+
+        [<Required(ErrorMessage = "Genre is required")>]
         Genre         : string
+
+        [<Required(ErrorMessage = "Description is required")>]
         Description   : string
+
+        [<Range(0.01, 1000000.0, ErrorMessage = "Price must be greater than 0")>]
         Price         : double
+
+        [<Range(0, 1000000, ErrorMessage = "Stock cannot be negative")>]
         Stock         : int
     }
 
@@ -142,18 +172,40 @@ type CreateBookRequest =
 [<CLIMutable>]
 type UpdateBookRequest =
     {
+        [<Required(ErrorMessage = "Title is required")>]
         Title         : string
+
+        [<RequireNonEmptyList(ErrorMessage = "At least one author is required")>]
         Authors       : string list
+
+        [<Required(ErrorMessage = "Isbn is required")>]
         Isbn          : string
+
+        [<Required(ErrorMessage = "Publisher is required")>]
         Publisher     : string
+
+        [<Range(1800, 2100, ErrorMessage = "Published year must be between 1800 and 2100")>]
         PublishedYear : int
+
+        [<Required(ErrorMessage = "Description is required")>]
         Description   : string
+
+        [<Range(0.01, 1000000.0, ErrorMessage = "Price must be greater than 0")>]
         Price         : double
+
+        [<Range(0, 1000000, ErrorMessage = "Stock cannot be negative")>]
         Stock         : int
     }
 
 /// API response — same shape as Book for simplicity
 type BookResponse = Book
+
+[<CLIMutable>]
+type GetAllRequest =
+    {
+        Page: int option
+        Size: int option
+    }
 
 /// Query parameters for Azure AI Search
 [<CLIMutable>]

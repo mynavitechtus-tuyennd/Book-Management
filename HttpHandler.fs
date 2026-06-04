@@ -26,8 +26,7 @@ module HttpHandler =
                       [
                         // Public read-only routes
                         GET >=> route "/search" >=> bindModel<SearchRequest> None SearchHttpHandler.search
-                        GET >=> route "/search-db" >=> bindModel<SearchDbRequest> None SearchHttpHandler.searchDb
-                        GET >=> BookHttpHandler.getAll
+                        GET >=> route "/search-db" >=> bindModel<SearchDbRequest> None SearchHttpHandler.searchDb     
 
                         GET >=> routef "/%s/%s" (fun (id, genre) -> BookHttpHandler.getById id genre)
 
@@ -43,6 +42,8 @@ module HttpHandler =
                             >=> bindModel<UpdateBookRequest> None (BookHttpHandler.update id genre))
 
                         DELETE
-                        >=> routef "/%s/%s" (fun (id, genre) -> requiresAuth >=> BookHttpHandler.delete id genre) ])
+                        >=> routef "/%s/%s" (fun (id, genre) -> requiresAuth >=> BookHttpHandler.delete id genre)
+                        GET >=> bindModel<GetAllRequest>  None BookHttpHandler.getAll
+                        ])
 
               setStatusCode 404 >=> json {| message = "Route not found" |} ]
