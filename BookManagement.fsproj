@@ -12,25 +12,41 @@
     </AssemblyAttribute>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="FSharp.Control.AsyncSeq" Version="4.15.0" />
     <PackageReference Include="Giraffe" Version="6.4.0" />
     <PackageReference Include="Giraffe.ViewEngine" Version="1.4.*" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.47.0" />
     <PackageReference Include="Azure.Search.Documents" Version="11.6.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageReference Include="Serilog" Version="4.3.2-dev-02433" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Utilities -->
     <Compile Include="Helpers/CommonHelper.fs" />
-    <Compile Include="UserDataLayer.fs" />
-    <Compile Include="UserHttpHandler.fs" />
     <Compile Include="Configuration/AppSettings.fs" />
+
+    <!-- Domain models (must come before infrastructure so interfaces can reference them) -->
     <Compile Include="Models.fs" />
-    <Compile Include="Infrastructure/Search/ISearchService.fs" />
+
+    <!-- Infrastructure abstractions (interfaces) -->
+    <Compile Include="Infrastructure/Abstractions/IBookRepository.fs" />
+    <Compile Include="Infrastructure/Abstractions/ISearchService.fs" />
+    <Compile Include="Infrastructure/Abstractions/IBookService.fs" />
+    <Compile Include="Infrastructure/Abstractions/ISearchQueryService.fs" />
+
+    <!-- Infrastructure implementations -->
     <Compile Include="Infrastructure/Search/SearchService.fs" />
-    <Compile Include="Infrastructure/CosmosDb/IBookRepository.fs" />
     <Compile Include="Infrastructure/CosmosDb/BookRepository.fs" />
+    
+    <!-- Application layer -->
+    <Compile Include="Application/Services.fs" />
+
+    <!-- HTTP handlers -->
     <Compile Include="Handlers/BookHttpHandler.fs" />
     <Compile Include="Handlers/SearchHttpHandler.fs" />
     <Compile Include="Handlers/AuthHttpHandler.fs" />
+
+    <!-- Routing + App startup -->
     <Compile Include="HttpHandler.fs" />
     <Compile Include="Startup.fs" />
     <Compile Include="Program.fs" />
