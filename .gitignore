@@ -52,6 +52,5 @@ TestResults/
 coverage/
 *.trx
 
-# Local development config helper
-scripts/EnvHelper.fsx
+# Local development config
 scripts/.env

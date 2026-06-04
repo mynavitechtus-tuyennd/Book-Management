@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="BookManagement.fsproj" />
+  <Project Path="BookManagement.Tests/BookManagement.Tests.fsproj" />
+</Solution>
