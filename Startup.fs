@@ -14,10 +14,11 @@ open Microsoft.Extensions.Configuration
 open Microsoft.IdentityModel.Tokens
 open Azure
 open Azure.Search.Documents
-open Azure.Search.Documents.Indexes
 open Giraffe
+open BookManagement.Infrastructure.Abstractions
 open BookManagement.Infrastructure.CosmosDb
 open BookManagement.Infrastructure.Search
+open BookManagement.Application
 open BookManagement.HttpHandler
 
 type Startup(configuration: IConfiguration) =
@@ -63,26 +64,32 @@ type Startup(configuration: IConfiguration) =
         let cosmosClient = new CosmosClient(cosmosConnStr, cosmosOptions)
         services.AddSingleton<CosmosClient>(cosmosClient) |> ignore
 
-        // Azure Search — singletons
-        let searchCredential = AzureKeyCredential(searchApiKey)
+        // Azure AI Search — SearchClient only (SearchIndexClient not needed at runtime;
+        // index schema is managed via scripts/CreateSearchIndex.fsx)
+        let searchCredential  = AzureKeyCredential(searchApiKey)
         let searchEndpointUri = Uri(searchEndpoint)
-        let searchClient  = new SearchClient(searchEndpointUri, searchIndexName, searchCredential)
-        let indexClient   = new SearchIndexClient(searchEndpointUri, searchCredential)
-        services.AddSingleton<SearchClient>(searchClient)     |> ignore
-        services.AddSingleton<SearchIndexClient>(indexClient) |> ignore
+        let searchClient      = new SearchClient(searchEndpointUri, searchIndexName, searchCredential)
+        services.AddSingleton<SearchClient>(searchClient) |> ignore
 
         // Scoped services
         services.AddScoped<ISearchService>(fun sp ->
             let sc  = sp.GetRequiredService<SearchClient>()
-            let ic  = sp.GetRequiredService<SearchIndexClient>()
             let log = sp.GetRequiredService<ILogger<SearchService>>()
-            SearchService(sc, ic, searchIndexName, log) :> ISearchService) |> ignore
+            SearchService(sc, log) :> ISearchService) |> ignore
 
         services.AddScoped<IBookRepository>(fun sp ->
             let cosmos  = sp.GetRequiredService<CosmosClient>()
             let search  = sp.GetRequiredService<ISearchService>()
             let log     = sp.GetRequiredService<ILogger<BookRepository>>()
             BookRepository(cosmos, cosmoDbName, cosmosContainer, search, log) :> IBookRepository) |> ignore
+
+        services.AddScoped<IBookService>(fun sp ->
+            let repo = sp.GetRequiredService<IBookRepository>()
+            BookService(repo) :> IBookService) |> ignore
+
+        services.AddScoped<ISearchQueryService>(fun sp ->
+            let search = sp.GetRequiredService<ISearchService>()
+            SearchQueryService(search) :> ISearchQueryService) |> ignore
 
         // JWT Authentication
         services
@@ -104,18 +111,6 @@ type Startup(configuration: IConfiguration) =
         services.AddGiraffe()       |> ignore
 
     member _.Configure(app: IApplicationBuilder, env: IWebHostEnvironment) =
-        // Ensure Azure Search index exists on startup
-        let sp = app.ApplicationServices
-        let searchSvc = sp.CreateScope().ServiceProvider.GetService<ISearchService>()
-        match searchSvc with
-        | :? SearchService as svc ->
-            try
-                svc.EnsureIndexExists() |> Async.AwaitTask |> Async.RunSynchronously
-            with ex ->
-                let log = sp.GetRequiredService<ILogger<Startup>>()
-                log.LogWarning(ex, "Could not ensure Azure Search index — check configuration")
-        | _ -> ()
-
         (match env.IsDevelopment() with
         | true  -> app.UseDeveloperExceptionPage()
         | false -> app.UseGiraffeErrorHandler(errorHandler).UseHttpsRedirection())

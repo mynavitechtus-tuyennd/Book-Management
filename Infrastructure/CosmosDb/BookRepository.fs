@@ -6,7 +6,7 @@ open Microsoft.Azure.Cosmos
 open Microsoft.Azure.Cosmos.Linq
 open Microsoft.Extensions.Logging
 open BookManagement.Domain
-open BookManagement.Infrastructure.Search
+open BookManagement.Infrastructure.Abstractions
 open BookManagement.Helpers
 
 type BookRepository(cosmosClient: CosmosClient,
@@ -36,7 +36,6 @@ type BookRepository(cosmosClient: CosmosClient,
             task {
                 let skip = (page - 1) * size
 
-                // Collect all items with pagination
                 let queryDef =
                     QueryDefinition("SELECT * FROM c OFFSET @skip LIMIT @take")
                         .WithParameter("@skip", skip)
@@ -45,7 +44,6 @@ type BookRepository(cosmosClient: CosmosClient,
                 use feedIterator  = container.GetItemQueryIterator<Book>(queryDef)
                 let! items        = CommonHelper.collectPages feedIterator []
 
-                // Count total
                 let countDef = QueryDefinition("SELECT VALUE COUNT(1) FROM c")
                 use countIterator  = container.GetItemQueryIterator<int>(countDef)
                 let! totalCount   = CommonHelper.sumPages countIterator 0L

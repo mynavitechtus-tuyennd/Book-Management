@@ -6,6 +6,8 @@ open System.Net
 open System.Threading.Tasks
 open Microsoft.Azure.Cosmos
 open Microsoft.AspNetCore.Http
+open FSharp.Control
+open Serilog
 
 module CommonHelper = 
 
@@ -54,3 +56,52 @@ module CommonHelper =
             let! value = ctx.BindJsonAsync<'T>()
             return if isNull (box value) then None else Some value
         }
+
+    let GetQueryRequestOptions() =
+        let ro = QueryRequestOptions()
+        ro.MaxBufferedItemCount <- 100 |> Nullable
+        ro.MaxConcurrency <- 4 |> Nullable
+        ro
+    let queryCosmos<'a> (client: CosmosClient) database containerName (queryDefinition : QueryDefinition) =
+        let ro = GetQueryRequestOptions()
+        let container = client.GetContainer(database, containerName)
+        container.GetItemQueryIterator<'a>(queryDefinition, null, ro)
+
+    let queryCosmosAsyncSeqWithContainer<'a> (container: Container) (qro: QueryRequestOptions) (queryDefinition : QueryDefinition) =
+        let feedIterator = container.GetItemQueryIterator<'a>(queryDefinition, null, qro)
+        AsyncSeq.unfoldAsync (fun ((cnt : int), (ru: float), (queryResult: FeedIterator<'a>)) ->
+            async {
+                if queryResult.HasMoreResults then
+                    let! result = queryResult.ReadNextAsync() |> Async.AwaitTask
+                    let casted = result |> Array.ofSeq
+                    return (casted, ((casted.Length + cnt) ,(result.RequestCharge + ru), queryResult)) |> Some
+                else
+                    return None
+            }
+        ) (0, 0.0, feedIterator)
+
+    let queryCosmosAsyncSeq<'a> (client: CosmosClient) database containerName (queryDefinition : QueryDefinition) =
+        let stopwatch = Diagnostics.Stopwatch.StartNew()
+        let feedIterator = queryCosmos<'a> client database containerName queryDefinition
+        AsyncSeq.unfoldAsync (fun ((cnt : int), (ru: float), (queryResult: FeedIterator<'a>)) ->
+            async {
+                if queryResult.HasMoreResults then
+                    let! result = queryResult.ReadNextAsync() |> Async.AwaitTask
+                    // logDebug "Request charge: %f" result.RequestCharge
+                    let casted = result |> Array.ofSeq
+                    stopwatch.Stop()
+                    // logDebug "Timespent(client) %fs" ((stopwatch.ElapsedMilliseconds|>float) / 1000.0)
+                    return (casted, ((casted.Length + cnt) ,(result.RequestCharge + ru), queryResult)) |> Some
+                else
+                    // logDebug $"Total record count: {cnt}"
+                    let qry = queryDefinition.QueryText.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ');
+                    match ru with
+                    | x when x > 1000.0  ->
+                        Log.Warning("Total RU spent: {ru}, QueryDefinition: {qry}", ru, qry)
+                    | x when x > 100.0 ->
+                        Log.Information("Total RU spent: {ru}, QueryDefinition: {qry}", ru, qry)
+                    | _ ->
+                        Log.Verbose("Total RU spent: {ru}, QueryDefinition: {qry}", ru, qry)
+                    return None
+            }
+        ) (0, 0.0, feedIterator)
