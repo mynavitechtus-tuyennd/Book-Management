@@ -28,7 +28,7 @@ module HttpHandler =
                         GET >=> route "/search" >=> bindModel<SearchRequest> None SearchHttpHandler.search
                         GET >=> route "/search-db" >=> bindModel<SearchDbRequest> None SearchHttpHandler.searchDb     
 
-                        GET >=> routef "/%s/%s" (fun (id, genre) -> BookHttpHandler.getById id genre)
+                        GET >=> routef "/%s/%s" (fun (genre, id) -> BookHttpHandler.getById genre id)
 
                         // Protected mutation routes (JWT required)
                         // bindModel<'T> declares the expected request body model and auto-returns 400 on invalid JSON/Form
@@ -37,12 +37,12 @@ module HttpHandler =
                         >=> bindModel<CreateBookRequest> None BookHttpHandler.create
 
                         PUT
-                        >=> routef "/%s/%s" (fun (id, genre) ->
+                        >=> routef "/%s/%s" (fun (genre, id) ->
                             requiresAuth
-                            >=> bindModel<UpdateBookRequest> None (BookHttpHandler.update id genre))
+                            >=> bindModel<UpdateBookRequest> None (BookHttpHandler.update genre id))
 
                         DELETE
-                        >=> routef "/%s/%s" (fun (id, genre) -> requiresAuth >=> BookHttpHandler.delete id genre)
+                        >=> routef "/%s/%s" (fun (genre, id) -> requiresAuth >=> BookHttpHandler.delete genre id)
                         GET >=> bindModel<GetAllRequest>  None BookHttpHandler.getAll
                         ])
 

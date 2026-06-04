@@ -26,7 +26,7 @@ module BookHttpHandler =
             }
 
     // GET /api/books/{id}/{genre}
-    let getById (id: string) (genre: string) : HttpHandler =
+    let getById (genre: string) (id: string)  : HttpHandler =
         fun next ctx ->
             task {
                 let! book = (getService ctx).GetById id genre
@@ -47,8 +47,8 @@ module BookHttpHandler =
                     return! json created next ctx
             }
 
-    // PUT /api/books/{id}/{genre} — body bound by bindJson<UpdateBookRequest> in routing
-    let update (id: string) (genre: string) (req: UpdateBookRequest) : HttpHandler =
+    // PUT /api/books/{genre}/{id} — body bound by bindJson<UpdateBookRequest> in routing
+    let update (genre: string) (id: string) (req: UpdateBookRequest) : HttpHandler =
         fun next ctx ->
             task {
                 match CommonHelper.validate req with
@@ -60,8 +60,8 @@ module BookHttpHandler =
                     | None   -> return! CommonHelper.notFound $"Book '{id}' not found" next ctx
             }
 
-    // DELETE /api/books/{id}/{genre}
-    let delete (id: string) (genre: string) : HttpHandler =
+    // DELETE /api/books/{genre}/{id}
+    let delete (genre: string) (id: string) : HttpHandler =
         fun next ctx ->
             task {
                 let! deleted = (getService ctx).Delete id genre

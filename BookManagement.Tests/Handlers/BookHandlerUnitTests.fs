@@ -22,11 +22,11 @@ let private ctxWithRepo (stub: StubBookRepository) method path queryParams body 
 let private postCtx (stub: StubBookRepository) =
     ctxWithRepo stub "POST" "/api/books" [] None
 
-let private putCtx (stub: StubBookRepository) (id: string) (genre: string) =
-    ctxWithRepo stub "PUT" $"/api/books/{id}/{genre}" [] None
+let private putCtx (stub: StubBookRepository) (genre: string) (id: string) =
+    ctxWithRepo stub "PUT" $"/api/books/{genre}/{id}" [] None
 
-let private deleteCtx (stub: StubBookRepository) (id: string) (genre: string) =
-    ctxWithRepo stub "DELETE" $"/api/books/{id}/{genre}" [] None
+let private deleteCtx (stub: StubBookRepository) (genre: string) (id: string) =
+    ctxWithRepo stub "DELETE" $"/api/books/{genre}/{id}" [] None
 
 let private getCtx (stub: StubBookRepository) (queryParams: (string * string) list) =
     ctxWithRepo stub "GET" "/api/books" queryParams None
@@ -109,7 +109,7 @@ let ``create with valid body returns 201`` () =
     status |> should equal (int HttpStatusCode.Created)
 
 // ──────────────────────────────────────────────────────────────────
-// PUT /api/books/{id}/{genre} — validation
+// PUT /api/books/{genre}/{id} — validation
 // ──────────────────────────────────────────────────────────────────
 
 [<Fact>]
@@ -117,9 +117,9 @@ let ``update with missing title returns 400`` () =
     let req  = { sampleUpdateRequest() with Title = "" }
     let stub = StubBookRepository()
     stub.SetUpdate(Some (sampleBook "book-1" "Technology"))
-    let ctx  = putCtx stub "book-1" "Technology"
+    let ctx  = putCtx stub "Technology" "book-1"
 
-    let status = runHandler (update "book-1" "Technology" req) ctx
+    let status = runHandler (update "Technology" "book-1" req) ctx
 
     status |> should equal (int HttpStatusCode.BadRequest)
 
@@ -127,9 +127,9 @@ let ``update with missing title returns 400`` () =
 let ``update with whitespace title returns 400`` () =
     let req  = { sampleUpdateRequest() with Title = "   " }
     let stub = StubBookRepository()
-    let ctx  = putCtx stub "book-1" "Technology"
+    let ctx  = putCtx stub "Technology" "book-1"
 
-    let status = runHandler (update "book-1" "Technology" req) ctx
+    let status = runHandler (update "Technology" "book-1" req) ctx
 
     status |> should equal (int HttpStatusCode.BadRequest)
 
@@ -137,9 +137,9 @@ let ``update with whitespace title returns 400`` () =
 let ``update with empty authors returns 400`` () =
     let req  = { sampleUpdateRequest() with Authors = [] }
     let stub = StubBookRepository()
-    let ctx  = putCtx stub "book-1" "Technology"
+    let ctx  = putCtx stub "Technology" "book-1"
 
-    let status = runHandler (update "book-1" "Technology" req) ctx
+    let status = runHandler (update "Technology" "book-1" req) ctx
 
     status |> should equal (int HttpStatusCode.BadRequest)
 
@@ -148,9 +148,9 @@ let ``update with valid body and existing book returns 200`` () =
     let updated = sampleBook "book-1" "Technology"
     let stub    = StubBookRepository()
     stub.SetUpdate(Some updated)
-    let ctx     = putCtx stub "book-1" "Technology"
+    let ctx     = putCtx stub "Technology" "book-1"
 
-    let status = runHandler (update "book-1" "Technology" (sampleUpdateRequest())) ctx
+    let status = runHandler (update "Technology" "book-1" (sampleUpdateRequest())) ctx
 
     status |> should equal (int HttpStatusCode.OK)
 
@@ -158,23 +158,23 @@ let ``update with valid body and existing book returns 200`` () =
 let ``update with valid body and missing book returns 404`` () =
     let stub = StubBookRepository()
     stub.SetUpdate(None)
-    let ctx  = putCtx stub "unknown" "Technology"
+    let ctx  = putCtx stub "Technology" "unknown"
 
-    let status = runHandler (update "unknown" "Technology" (sampleUpdateRequest())) ctx
+    let status = runHandler (update "Technology" "unknown" (sampleUpdateRequest())) ctx
 
     status |> should equal (int HttpStatusCode.NotFound)
 
 // ──────────────────────────────────────────────────────────────────
-// GET /api/books/{id}/{genre}
+// GET /api/books/{genre}/{id}
 // ──────────────────────────────────────────────────────────────────
 
 [<Fact>]
 let ``getById with existing book returns 200`` () =
     let stub = StubBookRepository()
     stub.SetGetById(Some (sampleBook "book-1" "Technology"))
-    let ctx  = ctxWithRepo stub "GET" "/api/books/book-1/Technology" [] None
+    let ctx  = ctxWithRepo stub "GET" "/api/books/Technology/book-1" [] None
 
-    let status = runHandler (getById "book-1" "Technology") ctx
+    let status = runHandler (getById "Technology" "book-1") ctx
 
     status |> should equal (int HttpStatusCode.OK)
 
@@ -182,23 +182,23 @@ let ``getById with existing book returns 200`` () =
 let ``getById with missing book returns 404`` () =
     let stub = StubBookRepository()
     stub.SetGetById(None)
-    let ctx  = ctxWithRepo stub "GET" "/api/books/missing/Technology" [] None
+    let ctx  = ctxWithRepo stub "GET" "/api/books/Technology/missing" [] None
 
-    let status = runHandler (getById "missing" "Technology") ctx
+    let status = runHandler (getById "Technology" "missing") ctx
 
     status |> should equal (int HttpStatusCode.NotFound)
 
 // ──────────────────────────────────────────────────────────────────
-// DELETE /api/books/{id}/{genre}
+// DELETE /api/books/{genre}/{id}
 // ──────────────────────────────────────────────────────────────────
 
 [<Fact>]
 let ``delete with existing book returns 204`` () =
     let stub = StubBookRepository()
     stub.SetDelete(true)
-    let ctx  = deleteCtx stub "book-1" "Technology"
+    let ctx  = deleteCtx stub "Technology" "book-1"
 
-    let status = runHandler (delete "book-1" "Technology") ctx
+    let status = runHandler (delete "Technology" "book-1") ctx
 
     status |> should equal (int HttpStatusCode.NoContent)
 
@@ -206,9 +206,9 @@ let ``delete with existing book returns 204`` () =
 let ``delete with missing book returns 404`` () =
     let stub = StubBookRepository()
     stub.SetDelete(false)
-    let ctx  = deleteCtx stub "unknown" "Technology"
+    let ctx  = deleteCtx stub "Technology" "unknown"
 
-    let status = runHandler (delete "unknown" "Technology") ctx
+    let status = runHandler (delete "Technology" "unknown") ctx
 
     status |> should equal (int HttpStatusCode.NotFound)
 

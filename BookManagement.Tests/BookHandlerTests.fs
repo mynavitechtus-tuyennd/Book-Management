@@ -142,11 +142,11 @@ let ``POST /api/books with missing title returns 400`` () =
     response.StatusCode |> should equal HttpStatusCode.BadRequest
 
 // ──────────────────────────────────────────────────────────────────
-// GET /api/books/{id}/{genre}
+// GET /api/books/{genre}/{id}
 // ──────────────────────────────────────────────────────────────────
 
 [<Fact>]
-let ``GET /api/books/book-1/Technology returns 200 with book`` () =
+let ``GET /api/books/Technology/book-1 returns 200 with book`` () =
     let book = sampleBook "book-1" "Technology"
     let stub = StubBookRepository()
     stub.SetGetById(Some book)
@@ -154,48 +154,48 @@ let ``GET /api/books/book-1/Technology returns 200 with book`` () =
     use server = buildTestServer (stub :> IBookRepository) (StubSearchService())
     use client = server.CreateClient()
 
-    let response = client.GetAsync("/api/books/book-1/Technology").Result
+    let response = client.GetAsync("/api/books/Technology/book-1").Result
 
     response.StatusCode |> should equal HttpStatusCode.OK
     let body = response.Content.ReadAsStringAsync().Result
     Assert.Contains("book-1", body)
 
 [<Fact>]
-let ``GET /api/books/unknown/Technology returns 404`` () =
+let ``GET /api/books/Technology/unknown returns 404`` () =
     let stub = StubBookRepository()
     stub.SetGetById(None)
 
     use server = buildTestServer (stub :> IBookRepository) (StubSearchService())
     use client = server.CreateClient()
 
-    let response = client.GetAsync("/api/books/unknown/Technology").Result
+    let response = client.GetAsync("/api/books/Technology/unknown").Result
 
     response.StatusCode |> should equal HttpStatusCode.NotFound
 
 // ──────────────────────────────────────────────────────────────────
-// DELETE /api/books/{id}/{genre}
+// DELETE /api/books/{genre}/{id}
 // ──────────────────────────────────────────────────────────────────
 
 [<Fact>]
-let ``DELETE /api/books/book-1/Technology returns 204 No Content`` () =
+let ``DELETE /api/books/Technology/book-1 returns 204 No Content`` () =
     let stub = StubBookRepository()
     stub.SetDelete(true)
 
     use server = buildTestServer (stub :> IBookRepository) (StubSearchService())
     use client = authorizedClient server
 
-    let response = client.DeleteAsync("/api/books/book-1/Technology").Result
+    let response = client.DeleteAsync("/api/books/Technology/book-1").Result
 
     response.StatusCode |> should equal HttpStatusCode.NoContent
 
 [<Fact>]
-let ``DELETE /api/books/unknown/Technology returns 404`` () =
+let ``DELETE /api/books/Technology/unknown returns 404`` () =
     let stub = StubBookRepository()
     stub.SetDelete(false)
 
     use server = buildTestServer (stub :> IBookRepository) (StubSearchService())
     use client = authorizedClient server
 
-    let response = client.DeleteAsync("/api/books/unknown/Technology").Result
+    let response = client.DeleteAsync("/api/books/Technology/unknown").Result
 
     response.StatusCode |> should equal HttpStatusCode.NotFound
