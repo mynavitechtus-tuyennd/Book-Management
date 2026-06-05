@@ -13,7 +13,11 @@ open System.ComponentModel.DataAnnotations
 [<CLIMutable>]
 type LoginRequest =
     {
+        [<Required(ErrorMessage = "Username is required")>]
+        [<MaxLength(100, ErrorMessage = "Username cannot exceed 100 characters")>]
         Username : string
+        [<Required(ErrorMessage = "Password is required")>]
+        [<MaxLength(100, ErrorMessage = "Password cannot exceed 100 characters")>]
         Password : string
     }
 

@@ -17,6 +17,9 @@ module CommonHelper =
     let badRequest (msg: string): HttpHandler  =
         setStatusCode(int HttpStatusCode.BadRequest) >=> json {| message = msg |}
 
+    let unprocessableEntity (msg: string): HttpHandler  =
+        setStatusCode(int HttpStatusCode.UnprocessableEntity) >=> json {| message = msg |}
+
     // Handle not found error and return 404 status code
     let notFound (msg: string): HttpHandler  =
         setStatusCode(int HttpStatusCode.NotFound) >=> json {| message = msg |}

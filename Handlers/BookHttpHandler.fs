@@ -40,7 +40,7 @@ module BookHttpHandler =
         fun next ctx ->
             task {
                 match CommonHelper.validate req with
-                | Error err -> return! CommonHelper.badRequest err next ctx
+                | Error err -> return! CommonHelper.unprocessableEntity err next ctx
                 | Ok () ->
                     let! created = (getService ctx).Create req
                     ctx.SetStatusCode(int HttpStatusCode.Created)
@@ -52,7 +52,7 @@ module BookHttpHandler =
         fun next ctx ->
             task {
                 match CommonHelper.validate req with
-                | Error err -> return! CommonHelper.badRequest err next ctx
+                | Error err -> return! CommonHelper.unprocessableEntity err next ctx
                 | Ok () ->
                     let! updated = (getService ctx).Update id genre req
                     match updated with

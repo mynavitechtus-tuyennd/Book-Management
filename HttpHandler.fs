@@ -3,6 +3,7 @@ namespace BookManagement.HttpHandler
 open Giraffe
 open BookManagement.Domain
 open BookManagement.Handlers
+open System.Net
 
 module HttpHandler =
 
@@ -17,7 +18,10 @@ module HttpHandler =
         choose
             [
               // Auth routes (public)
-              subRoute "/api/auth" (choose [ POST >=> route "/login" >=> AuthHttpHandler.login ])
+              subRoute "/api/auth" (
+                choose [
+                    POST >=> route "/login" >=> bindModel<LoginRequest> None AuthHttpHandler.login ]
+                    )
 
               // Book CRUD routes (CosmosDB) + Search routes (Azure AI Search)
               subRoute
@@ -46,4 +50,4 @@ module HttpHandler =
                         GET >=> bindModel<GetAllRequest>  None BookHttpHandler.getAll
                         ])
 
-              setStatusCode 404 >=> json {| message = "Route not found" |} ]
+              setStatusCode (int HttpStatusCode.NotFound)  >=> json {| message = "Route not found" |} ]

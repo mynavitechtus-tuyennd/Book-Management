@@ -47,26 +47,21 @@ module AuthHttpHandler =
           ExpiresAt = expiresAt }
 
     // POST /api/auth/login
-    let login : HttpHandler =
+    let login (req: LoginRequest) : HttpHandler =
         fun next ctx ->
             task {
                 try
-                    let! req = CommonHelper.bindValue<LoginRequest> ctx
+                    let config    = ctx.RequestServices.GetRequiredService<IConfiguration>()
+                    let issuer    = config.["Jwt:Issuer"]
+                    let audience  = config.["Jwt:Audience"]
+                    let secretKey = config.["Jwt:SecretKey"]
 
-                    match req with
-                    | None ->
-                        return! CommonHelper.badRequest "Username and Password are required" next ctx
-                    | Some r when String.IsNullOrWhiteSpace(r.Username) || String.IsNullOrWhiteSpace(r.Password) ->
-                        return! CommonHelper.badRequest "Username and Password are required" next ctx
-                    | Some r ->
-                        let config    = ctx.RequestServices.GetRequiredService<IConfiguration>()
-                        let issuer    = config.["Jwt:Issuer"]
-                        let audience  = config.["Jwt:Audience"]
-                        let secretKey = config.["Jwt:SecretKey"]
-
-                        match validCredentials.TryGetValue(r.Username) with
-                        | true, storedPassword when storedPassword = r.Password ->
-                            let result = generateToken issuer audience secretKey r.Username
+                    match CommonHelper.validate req with
+                    | Error err -> return! CommonHelper.unprocessableEntity err next ctx
+                    | Ok () ->
+                        match validCredentials.TryGetValue(req.Username) with
+                        | true, storedPassword when storedPassword = req.Password ->
+                            let result = generateToken issuer audience secretKey req.Username
                             return! json result next ctx
                         | _ ->
                             return! (setStatusCode (int HttpStatusCode.Unauthorized) >=> json {| message = "Invalid username or password" |}) next ctx
