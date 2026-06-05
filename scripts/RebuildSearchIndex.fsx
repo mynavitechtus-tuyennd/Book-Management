@@ -44,40 +44,16 @@ let searchEndpoint  = getEnv "AZURE_SEARCH_ENDPOINT"
 let searchApiKey    = getEnv "AZURE_SEARCH_KEY"
 let searchIndexName = getEnv "AZURE_SEARCH_INDEX"
 
-// ── Preview ───────────────────────────────────────────────────────────────────
-
-printfn ""
-printfn " REBUILD AZURE SEARCH INDEX"
-printfn "   Cosmos DB (data kept): %s / %s" cosmoDbName cosmosContainer
-printfn "   Search index (will be recreated): %s @ %s" searchIndexName searchEndpoint
-printfn ""
-printfn "This will DELETE and RECREATE the Search index, then re-index all Cosmos DB data."
-printfn "Cosmos DB data will NOT be deleted. Type 'yes' to confirm:"
-
-let confirm = Console.ReadLine()
-if confirm.Trim() <> "yes" then
-    printfn "Aborted."
-    exit 0
+// ── Configuration & Initialization ─────────────────────────────────────────────
 
 let searchCredential = AzureKeyCredential(searchApiKey)
 let indexClient      = SearchIndexClient(Uri(searchEndpoint), searchCredential)
 let searchClient     = SearchClient(Uri(searchEndpoint), searchIndexName, searchCredential)
 
-// ── Step 1: Xóa Search index cũ ──────────────────────────────────────────────
+// ── Step 1: Tạo hoặc cập nhật Search Index ─────────────────────────────────────
 
 printfn ""
-printfn "[1/3] Deleting Azure Search index '%s'..." searchIndexName
-
-try
-    indexClient.DeleteIndex(searchIndexName) |> ignore
-    printfn "Index deleted."
-with ex ->
-    printfn "Warning: %s" ex.Message
-
-// ── Step 2: Tạo lại Search index với schema từ BookSearchDocument ─────────────
-
-printfn ""
-printfn "[2/3] Creating new Search index from BookSearchDocument schema..."
+printfn "[1/2] Preparing Search Index '%s'..." searchIndexName
 
 let fields =
     let builder = FieldBuilder()
@@ -85,18 +61,33 @@ let fields =
 
 let index = SearchIndex(searchIndexName, fields)
 
-try
-    let result = indexClient.CreateOrUpdateIndex(index)
-    printfn "Index '%s' created with %d fields." result.Value.Name result.Value.Fields.Count
-    printfn "Fields: %s" (String.Join(", ", result.Value.Fields |> Seq.map (fun f -> f.Name)))
-with ex ->
-    printfn "Failed to create index: %s" ex.Message
-    exit 1
+let rec prepareIndex force =
+    try
+        if force then
+            printfn "Deleting existing index '%s'..." searchIndexName
+            try indexClient.DeleteIndex(searchIndexName) |> ignore with _ -> ()
+            printfn "Index deleted."
 
-// ── Step 3: Re-index toàn bộ data từ Cosmos DB ───────────────────────────────
+        let result = indexClient.CreateOrUpdateIndex(index)
+        printfn "Index '%s' configured successfully with %d fields." result.Value.Name result.Value.Fields.Count
+        printfn "Fields: %s" (String.Join(", ", result.Value.Fields |> Seq.map (fun f -> f.Name)))
+    with
+    | :? RequestFailedException as ex when ex.Status = 400 && not force ->
+        printfn "\n[!] Warning: Failed to update index in-place due to incompatible schema changes."
+        printfn "    Error details: %s" ex.Message
+        printfn ""
+        printfn "System will delete the existing index and recreate it automatically. (This will cause search downtime until re-indexing completes)"
+        prepareIndex true
+    | ex ->
+        printfn "Failed to configure index: %s" ex.Message
+        exit 1
+
+prepareIndex false
+
+// ── Step 2: Re-index toàn bộ data từ Cosmos DB ───────────────────────────────
 
 printfn ""
-printfn "[3/3] Re-indexing all documents from Cosmos DB to Azure Search..."
+printfn "[2/2] Re-indexing all documents from Cosmos DB to Azure Search..."
 
 let cosmosClient =
     new CosmosClient(

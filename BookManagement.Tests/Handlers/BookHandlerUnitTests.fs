@@ -37,7 +37,7 @@ let private getCtx (stub: StubBookRepository) (queryParams: (string * string) li
 // ──────────────────────────────────────────────────────────────────
 
 [<Fact>]
-let ``create with missing title returns 400`` () =
+let ``create with missing title returns 422`` () =
     let req  = { sampleCreateRequest() with Title = "" }
     let stub = StubBookRepository()
     stub.SetCreate(sampleBook "x" "Technology")
@@ -45,20 +45,20 @@ let ``create with missing title returns 400`` () =
 
     let status = runHandler (create req) ctx
 
-    status |> should equal (int HttpStatusCode.BadRequest)
+    status |> should equal (int HttpStatusCode.UnprocessableEntity)
 
 [<Fact>]
-let ``create with whitespace title returns 400`` () =
+let ``create with whitespace title returns 422`` () =
     let req  = { sampleCreateRequest() with Title = "   " }
     let stub = StubBookRepository()
     let ctx  = postCtx stub
 
     let status = runHandler (create req) ctx
 
-    status |> should equal (int HttpStatusCode.BadRequest)
+    status |> should equal (int HttpStatusCode.UnprocessableEntity)
 
 [<Fact>]
-let ``create with missing genre returns 400`` () =
+let ``create with missing genre returns 422`` () =
     let req  = { sampleCreateRequest() with Genre = "" }
     let stub = StubBookRepository()
     stub.SetCreate(sampleBook "x" "Technology")
@@ -66,27 +66,27 @@ let ``create with missing genre returns 400`` () =
 
     let status = runHandler (create req) ctx
 
-    status |> should equal (int HttpStatusCode.BadRequest)
+    status |> should equal (int HttpStatusCode.UnprocessableEntity)
 
 [<Fact>]
-let ``create with whitespace genre returns 400`` () =
+let ``create with whitespace genre returns 422`` () =
     let req  = { sampleCreateRequest() with Genre = "   " }
     let stub = StubBookRepository()
     let ctx  = postCtx stub
 
     let status = runHandler (create req) ctx
 
-    status |> should equal (int HttpStatusCode.BadRequest)
+    status |> should equal (int HttpStatusCode.UnprocessableEntity)
 
 [<Fact>]
-let ``create with empty authors list returns 400`` () =
+let ``create with empty authors list returns 422`` () =
     let req  = { sampleCreateRequest() with Authors = [] }
     let stub = StubBookRepository()
     let ctx  = postCtx stub
 
     let status = runHandler (create req) ctx
 
-    status |> should equal (int HttpStatusCode.BadRequest)
+    status |> should equal (int HttpStatusCode.UnprocessableEntity)
 
 [<Fact>]
 let ``create with valid body calls repository once`` () =
@@ -113,7 +113,7 @@ let ``create with valid body returns 201`` () =
 // ──────────────────────────────────────────────────────────────────
 
 [<Fact>]
-let ``update with missing title returns 400`` () =
+let ``update with missing title returns 422`` () =
     let req  = { sampleUpdateRequest() with Title = "" }
     let stub = StubBookRepository()
     stub.SetUpdate(Some (sampleBook "book-1" "Technology"))
@@ -121,27 +121,27 @@ let ``update with missing title returns 400`` () =
 
     let status = runHandler (update "Technology" "book-1" req) ctx
 
-    status |> should equal (int HttpStatusCode.BadRequest)
+    status |> should equal (int HttpStatusCode.UnprocessableEntity)
 
 [<Fact>]
-let ``update with whitespace title returns 400`` () =
+let ``update with whitespace title returns 422`` () =
     let req  = { sampleUpdateRequest() with Title = "   " }
     let stub = StubBookRepository()
     let ctx  = putCtx stub "Technology" "book-1"
 
     let status = runHandler (update "Technology" "book-1" req) ctx
 
-    status |> should equal (int HttpStatusCode.BadRequest)
+    status |> should equal (int HttpStatusCode.UnprocessableEntity)
 
 [<Fact>]
-let ``update with empty authors returns 400`` () =
+let ``update with empty authors returns 422`` () =
     let req  = { sampleUpdateRequest() with Authors = [] }
     let stub = StubBookRepository()
     let ctx  = putCtx stub "Technology" "book-1"
 
     let status = runHandler (update "Technology" "book-1" req) ctx
 
-    status |> should equal (int HttpStatusCode.BadRequest)
+    status |> should equal (int HttpStatusCode.UnprocessableEntity)
 
 [<Fact>]
 let ``update with valid body and existing book returns 200`` () =

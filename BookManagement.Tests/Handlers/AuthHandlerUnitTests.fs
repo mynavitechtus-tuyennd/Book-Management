@@ -13,6 +13,10 @@ open FsUnit.Xunit
 open BookManagement.Handlers.AuthHttpHandler
 open BookManagement.Tests.Helpers.TestHelpers
 
+open System.Text
+open System.Net.Http
+open BookManagement.Domain
+
 // ──────────────────────────────────────────────────────────────────
 // Helper
 // ──────────────────────────────────────────────────────────────────
@@ -40,57 +44,72 @@ let private addConfig (ctx: HttpContext) =
 
 
 // ──────────────────────────────────────────────────────────────────
-// POST /api/auth/login — validation (400 paths)
+// POST /api/auth/login — validation (400 and 422 paths)
 // ──────────────────────────────────────────────────────────────────
 
 [<Fact>]
-let ``login with null body returns 400`` () =
-    // Send a literal JSON null → bindValue returns None
-    let ctx = createFakeContext "POST" "/api/auth/login" [] (Some "null")
-
-    let status = runHandler login ctx
-
-    status |> should equal (int HttpStatusCode.BadRequest)
+let ``login with null body returns 422`` () =
+    let stubRepo = StubBookRepository()
+    let stubSearch = StubSearchService()
+    use server = buildTestServer stubRepo stubSearch
+    use client = server.CreateClient()
+    
+    let content = new StringContent("null", Encoding.UTF8, "application/json")
+    let response = client.PostAsync("/api/auth/login", content).Result
+    
+    response.StatusCode |> should equal HttpStatusCode.UnprocessableEntity
 
 [<Fact>]
-let ``login with empty username returns 400`` () =
+let ``login with empty username returns 422`` () =
     let ctx = loginCtx {| Username = ""; Password = "Admin@123" |}
+    addConfig ctx
+    let req = { Username = ""; Password = "Admin@123" }
 
-    let status = runHandler login ctx
+    let status = runHandler (login req) ctx
 
-    status |> should equal (int HttpStatusCode.BadRequest)
+    status |> should equal (int HttpStatusCode.UnprocessableEntity)
 
 [<Fact>]
-let ``login with whitespace username returns 400`` () =
+let ``login with whitespace username returns 422`` () =
     let ctx = loginCtx {| Username = "   "; Password = "Admin@123" |}
+    addConfig ctx
+    let req = { Username = "   "; Password = "Admin@123" }
 
-    let status = runHandler login ctx
+    let status = runHandler (login req) ctx
 
-    status |> should equal (int HttpStatusCode.BadRequest)
+    status |> should equal (int HttpStatusCode.UnprocessableEntity)
 
 [<Fact>]
-let ``login with empty password returns 400`` () =
+let ``login with empty password returns 422`` () =
     let ctx = loginCtx {| Username = "admin"; Password = "" |}
+    addConfig ctx
+    let req = { Username = "admin"; Password = "" }
 
-    let status = runHandler login ctx
+    let status = runHandler (login req) ctx
 
-    status |> should equal (int HttpStatusCode.BadRequest)
+    status |> should equal (int HttpStatusCode.UnprocessableEntity)
 
 [<Fact>]
-let ``login with whitespace password returns 400`` () =
+let ``login with whitespace password returns 422`` () =
     let ctx = loginCtx {| Username = "admin"; Password = "   " |}
+    addConfig ctx
+    let req = { Username = "admin"; Password = "   " }
 
-    let status = runHandler login ctx
+    let status = runHandler (login req) ctx
 
-    status |> should equal (int HttpStatusCode.BadRequest)
+    status |> should equal (int HttpStatusCode.UnprocessableEntity)
 
 [<Fact>]
 let ``login with invalid JSON body returns 400`` () =
-    let ctx = createFakeContext "POST" "/api/auth/login" [] (Some "{ invalid json }")
-
-    let status = runHandler login ctx
-
-    status |> should equal (int HttpStatusCode.BadRequest)
+    let stubRepo = StubBookRepository()
+    let stubSearch = StubSearchService()
+    use server = buildTestServer stubRepo stubSearch
+    use client = server.CreateClient()
+    
+    let content = new StringContent("{ invalid json }", Encoding.UTF8, "application/json")
+    let response = client.PostAsync("/api/auth/login", content).Result
+    
+    response.StatusCode |> should equal HttpStatusCode.BadRequest
 
 // ──────────────────────────────────────────────────────────────────
 // POST /api/auth/login — wrong credentials (401 path)
@@ -100,8 +119,9 @@ let ``login with invalid JSON body returns 400`` () =
 let ``login with wrong password returns 401`` () =
     let ctx = loginCtx {| Username = "admin"; Password = "WrongPassword" |}
     addConfig ctx
+    let req = { Username = "admin"; Password = "WrongPassword" }
 
-    let status = runHandler login ctx
+    let status = runHandler (login req) ctx
 
     status |> should equal (int HttpStatusCode.Unauthorized)
 
@@ -109,8 +129,9 @@ let ``login with wrong password returns 401`` () =
 let ``login with unknown username returns 401`` () =
     let ctx = loginCtx {| Username = "nobody"; Password = "Admin@123" |}
     addConfig ctx
+    let req = { Username = "nobody"; Password = "Admin@123" }
 
-    let status = runHandler login ctx
+    let status = runHandler (login req) ctx
 
     status |> should equal (int HttpStatusCode.Unauthorized)
 
@@ -119,8 +140,9 @@ let ``login with correct case-sensitive password mismatch returns 401`` () =
     // Password "admin@123" vs stored "Admin@123" → case sensitive
     let ctx = loginCtx {| Username = "admin"; Password = "admin@123" |}
     addConfig ctx
+    let req = { Username = "admin"; Password = "admin@123" }
 
-    let status = runHandler login ctx
+    let status = runHandler (login req) ctx
 
     status |> should equal (int HttpStatusCode.Unauthorized)
 
@@ -132,8 +154,9 @@ let ``login with correct case-sensitive password mismatch returns 401`` () =
 let ``login with correct admin credentials returns 200`` () =
     let ctx = loginCtx {| Username = "admin"; Password = "Admin@123" |}
     addConfig ctx
+    let req = { Username = "admin"; Password = "Admin@123" }
 
-    let status = runHandler login ctx
+    let status = runHandler (login req) ctx
 
     status |> should equal (int HttpStatusCode.OK)
 
@@ -141,7 +164,8 @@ let ``login with correct admin credentials returns 200`` () =
 let ``login with correct user credentials returns 200`` () =
     let ctx = loginCtx {| Username = "user"; Password = "User@123" |}
     addConfig ctx
+    let req = { Username = "user"; Password = "User@123" }
 
-    let status = runHandler login ctx
+    let status = runHandler (login req) ctx
 
     status |> should equal (int HttpStatusCode.OK)

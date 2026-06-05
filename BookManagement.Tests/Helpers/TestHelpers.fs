@@ -6,10 +6,23 @@ open BookManagement.Domain
 open BookManagement.Infrastructure.Abstractions
 open System.IO
 open System.Collections.Generic
+open System.Net.Http
+open System.Net.Http.Headers
+open System.Text
+open System.Text.Json
+open System.IdentityModel.Tokens.Jwt
+open System.Security.Claims
+open Microsoft.AspNetCore.Authentication.JwtBearer
+open Microsoft.AspNetCore.Builder
+open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Http
+open Microsoft.AspNetCore.TestHost
 open Microsoft.Extensions.Primitives
 open Microsoft.Extensions.DependencyInjection
+open Microsoft.Extensions.Hosting
+open Microsoft.IdentityModel.Tokens
 open Giraffe
+open BookManagement.Application
 
 /// Create a sample Book for testing
 let sampleBook (id: string) (genre: string) : Book =
@@ -54,6 +67,10 @@ let sampleUpdateRequest () : UpdateBookRequest =
         Price         = 39.99
         Stock         = 5
     }
+
+/// Create a sample LoginRequest
+let sampleLoginRequest () : LoginRequest =
+    { Username = "admin"; Password = "[PASSWORD]" }
 
 /// A paged result containing a single book
 let singlePagedResult (book: Book) : PagedResult<BookResponse> =
@@ -168,4 +185,74 @@ let runHandler (handler: Giraffe.Core.HttpHandler) (ctx: HttpContext) : int =
     |> Async.RunSynchronously
     |> ignore
     ctx.Response.StatusCode
+
+/// Shared JWT config for tests
+let private testJwtIssuer   = "BookManagementApi"
+let private testJwtAudience = "BookManagementClient"
+let private testJwtSecret   = "SuperSecretKeyForBookManagementApiProjectXYZ123!"
+
+/// Generate a valid Bearer token for use in tests
+let makeTestToken () =
+    let key   = SymmetricSecurityKey(Encoding.UTF8.GetBytes(testJwtSecret))
+    let creds = SigningCredentials(key, SecurityAlgorithms.HmacSha256)
+    let claims = [| Claim(ClaimTypes.Name, "testuser") |]
+    let token = JwtSecurityToken(
+                    issuer    = testJwtIssuer,
+                    audience  = testJwtAudience,
+                    claims    = claims,
+                    expires   = DateTime.UtcNow.AddHours(1.0),
+                    signingCredentials = creds)
+    JwtSecurityTokenHandler().WriteToken(token)
+
+let private testErrorHandler (ex: Exception) (logger: Microsoft.Extensions.Logging.ILogger) =
+    let statusCode =
+        if ex.GetType().Name.Contains("Json") || ex.Message.Contains("Json") then 400 else 500
+    clearResponse >=> setStatusCode statusCode >=> json {| message = ex.Message |}
+
+/// Build a TestServer with stub dependencies + JWT middleware
+let buildTestServer (repo: IBookRepository) (search: ISearchService) : TestServer =
+    let host =
+        Host.CreateDefaultBuilder()
+            .ConfigureWebHost(fun webHost ->
+                webHost
+                    .UseTestServer()
+                    .ConfigureServices(fun services ->
+                        services.AddSingleton<IBookRepository>(repo)  |> ignore
+                        services.AddSingleton<ISearchService>(search) |> ignore
+                        services.AddSingleton<IBookService>(BookService(repo)) |> ignore
+                        services.AddSingleton<ISearchQueryService>(SearchQueryService(search, repo)) |> ignore
+                        services.AddRouting()                         |> ignore
+                        services
+                            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                            .AddJwtBearer(fun options ->
+                                options.TokenValidationParameters <-
+                                    TokenValidationParameters(
+                                        ValidateIssuer           = true,
+                                        ValidateAudience         = true,
+                                        ValidateLifetime         = true,
+                                        ValidateIssuerSigningKey = true,
+                                        ValidIssuer              = testJwtIssuer,
+                                        ValidAudience            = testJwtAudience,
+                                        IssuerSigningKey         = SymmetricSecurityKey(Encoding.UTF8.GetBytes(testJwtSecret))))
+                        |> ignore
+                        services.AddAuthorization() |> ignore
+                        services.AddGiraffe()       |> ignore)
+                    .Configure(System.Action<_>(fun (app: Microsoft.AspNetCore.Builder.IApplicationBuilder) ->
+                        app.UseRouting()        |> ignore
+                        app.UseAuthentication() |> ignore
+                        app.UseAuthorization()  |> ignore
+                        app.UseGiraffeErrorHandler(testErrorHandler).UseGiraffe(BookManagement.HttpHandler.HttpHandler.webApp)))
+                |> ignore)
+            .Build()
+    host.StartAsync() |> Async.AwaitTask |> Async.RunSynchronously
+    host.GetTestServer()
+
+let jsonContent (obj: 'a) =
+    new StringContent(JsonSerializer.Serialize(obj), Encoding.UTF8, "application/json")
+
+/// Create an HttpClient with a valid Bearer token pre-attached
+let authorizedClient (server: TestServer) =
+    let client = server.CreateClient()
+    client.DefaultRequestHeaders.Authorization <- AuthenticationHeaderValue("Bearer", makeTestToken())
+    client
 
