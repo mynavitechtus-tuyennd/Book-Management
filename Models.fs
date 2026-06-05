@@ -104,7 +104,7 @@ type BookSearchDocument =
         PublishedYear : int
 
         [<JsonPropertyName("genre")>]
-        [<SimpleField(IsFilterable = true, IsFacetable = true)>]
+        [<SearchableField(IsFilterable = true, IsFacetable = true)>]
         Genre         : string
 
         [<JsonPropertyName("description")>]

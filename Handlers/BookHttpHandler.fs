@@ -19,8 +19,8 @@ module BookHttpHandler =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
                 let svc = getService ctx
-                let page = if req.Page.IsSome then req.Page.Value else 1
-                let size = if req.Size.IsSome then req.Size.Value else 20
+                let page = defaultArg req.Page 1 |> max 1
+                let size = defaultArg req.Size 20 |> max 1
                 let! result = svc.GetAll page size
                 return! json result next ctx
             }

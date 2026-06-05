@@ -31,7 +31,7 @@
     <Compile Include="Handlers/BookHandlerUnitTests.fs" />
     <Compile Include="Handlers/AuthHandlerUnitTests.fs" />
     <Compile Include="Handlers/SearchHandlerUnitTests.fs" />
-    <Compile Include="BookRepositoryTests.fs" />
+    <Compile Include="Infrastructure/BookRepositoryTests.fs" />
     <Compile Include="BookHandlerTests.fs" />
     <Compile Include="SearchHandlerTests.fs" />
   </ItemGroup>

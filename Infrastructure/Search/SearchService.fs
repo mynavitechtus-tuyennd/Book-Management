@@ -42,7 +42,7 @@ type SearchService(searchClient: SearchClient, logger: ILogger<SearchService>) =
 
                 match req.Genre with
                 | Some genre when not (String.IsNullOrWhiteSpace(genre)) ->
-                    filters.Add(sprintf "search.ismatch('%s', 'genre')" genre)
+                    filters.Add(sprintf "search.ismatch('%s', 'genre')" (genre + "*"))
                 | _ -> ()
 
                 // Authors is a Collection(Edm.String) — search.ismatch searches across all values
